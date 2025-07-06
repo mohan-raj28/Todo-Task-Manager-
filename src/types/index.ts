@@ -1,10 +1,9 @@
-
 export interface User {
   id: string;
   name: string;
   email: string;
   avatar?: string;
-  provider: 'google' | 'github' | 'facebook';
+  provider: 'google' | 'github' | 'facebook' | 'guest';
 }
 
 export interface Task {

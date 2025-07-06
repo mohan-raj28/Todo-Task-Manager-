@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { User } from '@/types';
+import { signInWithGoogle, signInWithGithub, signInWithFacebook } from '@/lib/firebase';
 
 interface AuthModalProps {
   onLogin: (user: User) => void;
@@ -13,20 +13,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
 
   const handleSocialLogin = async (provider: 'google' | 'github' | 'facebook') => {
     setIsLoading(true);
-    
-    // Simulate OAuth flow (in production, this would redirect to OAuth provider)
-    setTimeout(() => {
-      const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: provider === 'google' ? 'John Doe' : provider === 'github' ? 'jane_dev' : 'Sarah Smith',
-        email: `user@${provider}.com`,
-        avatar: `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face`,
-        provider
-      };
-      
-      onLogin(mockUser);
+    try {
+      let result;
+      if (provider === 'google') {
+        result = await signInWithGoogle();
+      } else if (provider === 'github') {
+        result = await signInWithGithub();
+      } else if (provider === 'facebook') {
+        result = await signInWithFacebook();
+      }
+      if (result && result.user) {
+        const user = result.user;
+        const userData: User = {
+          id: user.uid,
+          name: user.displayName || 'No Name',
+          email: user.email || '',
+          avatar: user.photoURL || undefined,
+          provider,
+        };
+        onLogin(userData);
+      }
+    } catch (error) {
+      alert('Login failed. Please try again.');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -79,6 +90,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onLogin, onClose }) => {
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
             <span className="text-gray-700 font-medium">Continue with Facebook</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsLoading(true);
+              setTimeout(() => {
+                onLogin({
+                  id: 'guest',
+                  name: 'Guest User',
+                  email: '',
+                  avatar: undefined,
+                  provider: 'guest',
+                });
+                setIsLoading(false);
+              }, 500);
+            }}
+            disabled={isLoading}
+            className="w-full flex items-center justify-center space-x-3 py-3 px-4 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 bg-gray-50"
+          >
+            <span className="text-gray-700 font-medium">Continue as Guest</span>
           </button>
         </div>
 
